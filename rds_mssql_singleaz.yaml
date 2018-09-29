@@ -27,6 +27,16 @@ Parameters:
      MinValue: 100
      MaxValue: 2000
      Description: The total Database Capacity, including logs, indexes, etc. (GB)
+  PreferredBackupWindow:
+     Type: String
+     Default: '09:00-09:30'
+     ConstraintDescription: must be at least 30 minutes, must be in UTC, must not conflict with preferred maintenance window, required format is hh24:mi-hh24:mi.
+     Description: The preferred backup window (30 minutes minimum), in UTC (Coordinated Universal Time).
+  PreferredMaintenanceWindow:
+     Type: String
+     Default: 'sun:10:00-sun:10:30'
+     ConstraintDescription: must be at least 30 minutes, must be in UTC, must not conflict with preferred backup window, required format is hh24:mi-hh24:mi.
+     Description: The preferred maintenance window (30 minutes minimum), in UTC (Coordinated Universal Time).   
   SnapshotRetentionPeriodDays:
      Type: Number
      ConstraintDescription: must contain a number between 1 and 365
@@ -53,11 +63,13 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
-        default: SQL Instance name, SQL Instance type, DB Size, Snapshot Retention, master username and password
+        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, master username and password
       Parameters:
         - SqlServerInstanceName
         - SqlServerInstanceType
         - SqlServerDBSize
+        - PreferredBackupWindow
+        - PreferredMaintenanceWindow
         - SnapshotRetentionPeriodDays
         - DatabaseUsername
         - DatabasePassword
@@ -68,6 +80,10 @@ Metadata:
             default: db.m4.large
         SqlServerDBSize:
             default: 500
+        PreferredBackupWindow:
+            default: '09:00-09:30'
+        PreferredMaintenanceWindow:
+            default: 'sun:10:00-sun:10:30'
         SnaphotRetentionPeriodDays:
             default: 7
         DatabaseUsername:
@@ -88,10 +104,10 @@ Resources:
       GroupDescription: SQL Server Security Group
       VpcId:  vpc-02fed27515c2b1482
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '1433'
-        ToPort: '1433'
-        CidrIp: '204.61.56.0/0'
+        IpProtocol: tcp
+        FromPort: 1433
+        ToPort: 1433
+        CidrIp: '204.61.56.0/24'
   SQLDatabase:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -117,7 +133,7 @@ Resources:
         Ref: DatabaseUsername
       MasterUserPassword:
         Ref: DatabasePassword
-      PubliclyAccessible: 'false'
+      PubliclyAccessible: false
       Tags:
         -
           Key: "Name"
@@ -126,6 +142,10 @@ Resources:
           Key: "project"
           Value: "development unittest"
       CopyTagsToSnapshot: true
+      PreferredBackupWindow:
+        Ref: PreferredBackupWindow
+      PreferredMaintenanceWindow:
+        Ref: PreferredMaintenanceWindow  
       BackupRetentionPeriod:
         Ref: SnapshotRetentionPeriodDays
     DependsOn: SQLServerSecurityGroup
