@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a sample BluePrism RPA stack with App Server, Robot, DB Server
+Parameters:
+  SqlServerInstanceName:
+    NoEcho: 'false'
+    Description: RDS SQL Server Instance Name
+    Type: String
+    Default: SqlRdsDB
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  SqlServerInstanceType:
+    Type: String
+    Default: db.m4.large
+    Description: The approved RDS Instance Type.
+    AllowedValues:
+    - db.m4.large
+    - db.m4.2xlarge
+    - db.m4.4xlarge
+    - db.r4.large
+    - db.r4.2xlarge
+    - db.r4.4xlarge
+  SqlServerDBSize:
+     Type: Number
+     ConstraintDescription: must contain a number between 100 and 2000.
+     Default: 500
+     MinValue: 100
+     MaxValue: 2000
+     Description: The total Database Capacity, including logs, indexes, etc. (GB)
+  PreferredBackupWindow:
+     Type: String
+     Default: '09:00-09:30'
+     ConstraintDescription: must be at least 30 minutes, must be in UTC, must not conflict with preferred maintenance window, required format is hh24:mi-hh24:mi.
+     Description: The preferred backup window (30 minutes minimum), in UTC (Coordinated Universal Time).
+  PreferredMaintenanceWindow:
+     Type: String
+     Default: 'sun:10:00-sun:10:30'
+     ConstraintDescription: must be at least 30 minutes, must be in UTC, must not conflict with preferred backup window, required format is hh24:mi-hh24:mi.
+     Description: The preferred maintenance window (30 minutes minimum), in UTC (Coordinated Universal Time).   
+  SnapshotRetentionPeriodDays:
+     Type: Number
+     ConstraintDescription: must contain a number between 1 and 365
+     Default: 7
+     MinValue: 1
+     MaxValue: 365
+     Description: The number of days to retain snapshots (1-365).
+  DatabaseUsername:
+    AllowedPattern: "[a-zA-Z0-9]+"
+    ConstraintDescription: must contain only alphanumeric characters.
+    Description: The database admin account user name.
+    MaxLength: '16'
+    MinLength: '1'
+    Type: String
+  DatabasePassword:
+    AllowedPattern: "^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+)"
+    ConstraintDescription: Must contain only alphanumeric characters with at least one capital letter and one number.
+    Description: The database admin account password.
+    MaxLength: '41'
+    MinLength: '8'
+    NoEcho: 'true'
+    Type: String
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, master username and password
+      Parameters:
+        - SqlServerInstanceName
+        - SqlServerInstanceType
+        - SqlServerDBSize
+        - PreferredBackupWindow
+        - PreferredMaintenanceWindow
+        - SnapshotRetentionPeriodDays
+        - DatabaseUsername
+        - DatabasePassword
+      ParameterLabels:
+        SqlServerInstanceName:
+            default: Instance name
+        SqlServerInstanceType:
+            default: db.m4.large
+        SqlServerDBSize:
+            default: 500
+        PreferredBackupWindow:
+            default: '09:00-09:30'
+        PreferredMaintenanceWindow:
+            default: 'sun:10:00-sun:10:30'
+        SnapshotRetentionPeriodDays:
+            default: 7
+        DatabaseUsername:
+            default: Master user name
+        DatabasePassword:
+            default: Password
+Resources:
+  RDSStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/rds_mssql_singleaz.yaml
+      Parameters:
+        SqlServerInstanceName:
+          !Ref SqlServerInstanceName
+        SqlServerInstanceType:
+          !Ref SqlServerInstanceType
+        SqlServerDBSize:
+          !Ref SqlServerDBSize
+        PreferredBackupWindow:
+          !Ref PreferredBackupWindow
+        PreferredMaintenanceWindow:
+          !Ref PreferredMaintenanceWindow
+        SnapshotRetentionPeriodDays:
+          !Ref SnapshotRetentionPeriodDays        
+        DatabaseUsername:
+          !Ref DatabaseUsername
+        DatabasePassword:
+          !Ref DatabasePassword
+Outputs:
+  StackRef:
+    Value: !Ref RDSStackWithParams
+  OutputFromNestedStack:
+    Value: !GetAtt RDSStackWithParams.Outputs.SQLDatabaseEndpoint
+         
