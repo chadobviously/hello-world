@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: test EC2
+Parameters:
+  EC2InstanceName:
+    NoEcho: 'false'
+    Description: EC2 Server Instance Name
+    Type: String
+    Default: EC2Instance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+Resources:
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable http access from anywhere and RDP from office
+      VpcId:  vpc-02fed27515c2b1482
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '3389'
+          ToPort: '3389'
+          CidrIp: 204.61.56.0/24
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-5257b02a
+      InstanceInitiatedShutdownBehavior: stop
+      InstanceType: m4.large
+      KeyName: !Ref KeyName
+      SubnetId: 'subnet-08702cdde511e7840'
+      Monitoring: 'true'
+      SecurityGroupIds:
+        - !GetAtt 
+          - WebServerSecurityGroup
+          - GroupId
+      Tenancy: default
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: '100'
+            VolumeType: gp2
+      Volumes:
+        - VolumeId: !Ref EBSDisk
+          Device: /dev/sdk
+     
+      Tags:
+        -
+          Key: "Name"
+          Value: !Ref EC2InstanceName
+
+  EBSDisk:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      AvailabilityZone: us-west-2a
+      Encrypted: 'true'
+      Size: '20'
+      VolumeType: gp2
