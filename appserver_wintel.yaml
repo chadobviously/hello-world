@@ -31,11 +31,11 @@ Resources:
   EC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-5257b02a
+      ImageId: ami-0a98eba42e9bf85c9
       InstanceInitiatedShutdownBehavior: stop
       InstanceType: m4.large
       KeyName: !Ref KeyName
-      SubnetId: 'subnet-08702cdde511e7840'
+      SubnetId: 'subnet-0933867f24bff05bd'
       Monitoring: 'true'
       SecurityGroupIds:
         - !GetAtt 
