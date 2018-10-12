@@ -9,10 +9,32 @@ Parameters:
     MinLength: '1'
     MaxLength: '63'
     AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  EC2ServerInstanceType:
+    Type: String
+    Default: t2.micro
+    Description: The approved EC2 Instance Type.
+    AllowedValues:
+    - t2.micro
+    - m4.small
+    - m4.large
+    - m4.2xlarge
+    - m4.4xlarge
+    - r4.small
+    - r4.large
+    - r4.2xlarge
+    - r4.4xlarge
+  EC2AttachedDiskSize:
+    Type: Number
+    ConstraintDescription: must contain a number between 20 and 500.
+    Default: 100
+    MinValue: 20
+    MaxValue: 500
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
   KeyName:
     Description: Name of an existing EC2 KeyPair
     Type: 'AWS::EC2::KeyPair::KeyName'
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
+          
 Resources:
   WebServerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -23,17 +45,17 @@ Resources:
         - IpProtocol: tcp
           FromPort: '80'
           ToPort: '80'
-          CidrIp: 0.0.0.0/0
+          CidrIp: 10.0.0.0/8
         - IpProtocol: tcp
           FromPort: '3389'
           ToPort: '3389'
-          CidrIp: 204.61.56.0/24
+          CidrIp: 10.0.0.0/8
   EC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
       ImageId: ami-0a98eba42e9bf85c9
       InstanceInitiatedShutdownBehavior: stop
-      InstanceType: m4.large
+      InstanceType: !Ref EC2ServerInstanceType
       KeyName: !Ref KeyName
       SubnetId: 'subnet-0933867f24bff05bd'
       Monitoring: 'true'
@@ -49,6 +71,7 @@ Resources:
             VolumeType: gp2
       Volumes:
         - VolumeId: !Ref EBSDisk
+
           Device: /dev/sdk
      
       Tags:
@@ -61,5 +84,11 @@ Resources:
     Properties:
       AvailabilityZone: us-west-2a
       Encrypted: 'true'
-      Size: '20'
+      Size: !Ref EC2AttachedDiskSize
       VolumeType: gp2
+      
+Outputs:
+   EC2PrivateIPAddress:
+     Description: Private Endpoint of EC2 Instance
+     Value: 
+      !GetAtt EC2Instance.PrivateIp
