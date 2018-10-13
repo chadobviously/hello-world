@@ -83,7 +83,6 @@ Resources:
           - WebServerSecurityGroup
           - GroupId
       Tenancy: default
-      DisableApiTermination: true
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
