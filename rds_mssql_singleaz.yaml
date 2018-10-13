@@ -15,9 +15,11 @@ Parameters:
     Description: The approved RDS Instance Type.
     AllowedValues:
     - db.m4.large
+    - db.m4.xlarge
     - db.m4.2xlarge
     - db.m4.4xlarge
     - db.r4.large
+    - db.r4.xlarge
     - db.r4.2xlarge
     - db.r4.4xlarge
   SqlServerDBSize:
@@ -107,7 +109,7 @@ Resources:
         IpProtocol: tcp
         FromPort: 1433
         ToPort: 1433
-        CidrIp: '204.61.56.0/24'
+        CidrIp: '10.0.0.0/8'
   SQLDatabase:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -121,7 +123,7 @@ Resources:
         Ref: SqlServerInstanceName
       LicenseModel: license-included
       Engine: sqlserver-se
-      EngineVersion: 13.00.4466.4.v1
+      EngineVersion: 14.00.3035.2.v1
       MultiAZ: false
       DBInstanceClass:
         Ref: SqlServerInstanceType

@@ -15,9 +15,11 @@ Parameters:
     Description: The approved RDS Instance Type.
     AllowedValues:
     - db.m4.large
+    - db.m4.xlarge
     - db.m4.2xlarge
     - db.m4.4xlarge
     - db.r4.large
+    - db.r4.xlarge
     - db.r4.2xlarge
     - db.r4.4xlarge
   SqlServerDBSize:
