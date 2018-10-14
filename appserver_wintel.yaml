@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: test EC2
+Description: Creates a BluePrism Application Server or Robot Server
 Parameters:
   EC2InstanceName:
     NoEcho: 'false'
@@ -47,13 +47,11 @@ Metadata:
       ParameterLabels:
         EC2InstanceName:
             default: EC2Instance
-        SqlServerInstanceType:
+        EC2ServerInstanceType:
             default: t2.micro
         EC2AttachedDiskSize:
             default: 100
-        
-        
-          
+         
 Resources:
   WebServerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'

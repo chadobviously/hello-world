@@ -61,11 +61,74 @@ Parameters:
     MinLength: '8'
     NoEcho: 'true'
     Type: String
+    
+  AppServerInstanceName:
+    NoEcho: 'false'
+    Description: App Server Instance Name
+    Type: String
+    Default: AppServerInstance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  AppServerInstanceType:
+    Type: String
+    Default: t2.micro
+    Description: The approved App Server Instance Type.
+    AllowedValues:
+    - t2.micro
+    - m4.large
+    - m4.2xlarge
+    - m4.4xlarge
+    - r4.small
+    - r4.large
+    - r4.2xlarge
+    - r4.4xlarge
+  AppServerAttachedDiskSize:
+    Type: Number
+    ConstraintDescription: must contain a number between 20 and 500.
+    Default: 100
+    MinValue: 20
+    MaxValue: 500
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+    
+  RobotServerInstanceName:
+    NoEcho: 'false'
+    Description: Robot Server Instance Name
+    Type: String
+    Default: RobotServerInstance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  RobotServerInstanceType:
+    Type: String
+    Default: t2.micro
+    Description: The approved Robot Server Instance Type.
+    AllowedValues:
+    - t2.micro
+    - m4.large
+    - m4.2xlarge
+    - m4.4xlarge
+    - r4.small
+    - r4.large
+    - r4.2xlarge
+    - r4.4xlarge
+  RobotServerAttachedDiskSize:
+    Type: Number
+    ConstraintDescription: must contain a number between 20 and 500.
+    Default: 100
+    MinValue: 20
+    MaxValue: 500
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)  
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair. 
+    
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
-        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, master username and password
+        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, database username and password, App/Robot Server Instance Name, App/Robot Server Instance Type, App/Robot Server Disk Capacity, Key Name
       Parameters:
         - SqlServerInstanceName
         - SqlServerInstanceType
@@ -75,6 +138,13 @@ Metadata:
         - SnapshotRetentionPeriodDays
         - DatabaseUsername
         - DatabasePassword
+        - AppServerInstanceName
+        - AppServerInstanceType
+        - AppServerAttachedDiskSize
+        - RobotServerInstanceName
+        - RobotServerInstanceType
+        - RobotServerAttachedDiskSize
+        - KeyName
       ParameterLabels:
         SqlServerInstanceName:
             default: Instance name
@@ -92,6 +162,19 @@ Metadata:
             default: Master user name
         DatabasePassword:
             default: Password
+        AppServerInstanceName:
+            default: AppServerInstance
+        AppServerInstanceType:
+            default: t2.micro
+        AppServerAttachedDiskSize:
+            default: 100
+        RobotServerInstanceName:
+            default: RobotServerInstance
+        RobotServerInstanceType:
+            default: t2.micro
+        RobotServerAttachedDiskSize:
+            default: 100
+            
 Resources:
   RDSStackWithParams:
     Type: AWS::CloudFormation::Stack
@@ -114,9 +197,47 @@ Resources:
           !Ref DatabaseUsername
         DatabasePassword:
           !Ref DatabasePassword
+          
+  AppServerStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/appserver_wintel.yaml
+      Parameters:
+        EC2InstanceName:
+          !Ref AppServerInstanceName
+        EC2ServerInstanceType:
+          !Ref AppServerInstanceType
+        EC2AttachedDiskSize:
+          !Ref AppServerAttachedDiskSize
+        KeyName:
+          !Ref KeyName
+          
+  RobotServerStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/appserver_wintel.yaml
+      Parameters:
+        EC2InstanceName:
+          !Ref RobotServerInstanceName
+        EC2ServerInstanceType:
+          !Ref RobotServerInstanceType
+        EC2AttachedDiskSize:
+          !Ref RobotServerAttachedDiskSize
+        KeyName:
+          !Ref KeyName        
+          
 Outputs:
-  StackRef:
+  RDSStackRef:
     Value: !Ref RDSStackWithParams
-  OutputFromNestedStack:
+  OutputFromRDSStack:
     Value: !GetAtt RDSStackWithParams.Outputs.SQLDatabaseEndpoint
-         
+    
+  AppServerStackRef:
+    Value: !Ref AppServerStackWithParams
+  OutputFromAppServerStack:
+    Value: !GetAtt AppServerStackWithParams.Outputs.EC2PrivateIPAddress
+
+  RobotServerStackRef:
+    Value: !Ref RobotServerStackWithParams
+  OutputFromRobotServerStack:
+    Value: !GetAtt RobotServerStackWithParams.Outputs.EC2PrivateIPAddress
