@@ -29,6 +29,13 @@ Parameters:
     MinValue: 20
     MaxValue: 500
     Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+  schedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'
   KeyName:
     Description: Name of an existing EC2 KeyPair
     Type: 'AWS::EC2::KeyPair::KeyName'
@@ -38,11 +45,12 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
-        default: EC2 Instance name, EC2 Server Instance type, EC2 Attached Disk Size, Key Name
+        default: EC2 Instance name, EC2 Server Instance type, EC2 Attached Disk Size, schedule, Key Name
       Parameters:
         - EC2InstanceName
         - EC2ServerInstanceType
         - EC2AttachedDiskSize
+        - schedule
         - KeyName
       ParameterLabels:
         EC2InstanceName:
@@ -51,6 +59,8 @@ Metadata:
             default: t2.micro
         EC2AttachedDiskSize:
             default: 100
+        schedule:
+            default: 0        
          
 Resources:
   WebServerSecurityGroup:
@@ -95,6 +105,10 @@ Resources:
         -
           Key: "Name"
           Value: !Ref EC2InstanceName
+        -
+          Key: "schedule"
+          Value: !Ref schedule
+          
 
   EBSDisk:
     Type: 'AWS::EC2::Volume'

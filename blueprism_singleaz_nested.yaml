@@ -61,6 +61,13 @@ Parameters:
     MinLength: '8'
     NoEcho: 'true'
     Type: String
+  RDSSchedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'    
     
   AppServerInstanceName:
     NoEcho: 'false'
@@ -90,6 +97,13 @@ Parameters:
     MinValue: 20
     MaxValue: 500
     Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+  AppServerSchedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'     
     
   RobotServerInstanceName:
     NoEcho: 'false'
@@ -118,7 +132,15 @@ Parameters:
     Default: 100
     MinValue: 20
     MaxValue: 500
-    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)  
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+  RobotServerSchedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'  
+
   KeyName:
     Description: Name of an existing EC2 KeyPair
     Type: 'AWS::EC2::KeyPair::KeyName'
@@ -128,7 +150,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
-        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, database username and password, App/Robot Server Instance Name, App/Robot Server Instance Type, App/Robot Server Disk Capacity, Key Name
+        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, database username and password, App/Robot Server Instance Name, App/Robot Server Instance Type, App/Robot Server Disk Capacity, Key Name, schedule
       Parameters:
         - SqlServerInstanceName
         - SqlServerInstanceType
@@ -138,12 +160,15 @@ Metadata:
         - SnapshotRetentionPeriodDays
         - DatabaseUsername
         - DatabasePassword
+        - RDSSchedule
         - AppServerInstanceName
         - AppServerInstanceType
         - AppServerAttachedDiskSize
+        - AppServerSchedule
         - RobotServerInstanceName
         - RobotServerInstanceType
         - RobotServerAttachedDiskSize
+        - RobotServerSchedule
         - KeyName
       ParameterLabels:
         SqlServerInstanceName:
@@ -162,18 +187,24 @@ Metadata:
             default: Master user name
         DatabasePassword:
             default: Password
+        RDSSchedule:
+            default: 0        
         AppServerInstanceName:
             default: AppServerInstance
         AppServerInstanceType:
             default: t2.micro
         AppServerAttachedDiskSize:
             default: 100
+        AppServerSchedule:
+            default: 0        
         RobotServerInstanceName:
             default: RobotServerInstance
         RobotServerInstanceType:
             default: t2.micro
         RobotServerAttachedDiskSize:
             default: 100
+        RobotServerSchedule:
+            default: 0
             
 Resources:
   RDSStackWithParams:
@@ -197,6 +228,8 @@ Resources:
           !Ref DatabaseUsername
         DatabasePassword:
           !Ref DatabasePassword
+        schedule:
+          !Ref RDSSchedule
           
   AppServerStackWithParams:
     Type: AWS::CloudFormation::Stack
@@ -209,6 +242,8 @@ Resources:
           !Ref AppServerInstanceType
         EC2AttachedDiskSize:
           !Ref AppServerAttachedDiskSize
+        schedule:
+          !Ref AppServerSchedule
         KeyName:
           !Ref KeyName
           
@@ -223,6 +258,8 @@ Resources:
           !Ref RobotServerInstanceType
         EC2AttachedDiskSize:
           !Ref RobotServerAttachedDiskSize
+        schedule:
+          !Ref RobotServerSchedule
         KeyName:
           !Ref KeyName        
           

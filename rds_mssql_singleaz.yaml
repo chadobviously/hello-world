@@ -61,11 +61,18 @@ Parameters:
     MinLength: '8'
     NoEcho: 'true'
     Type: String
+  schedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
-        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, master username and password
+        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, master username and password, schedule
       Parameters:
         - SqlServerInstanceName
         - SqlServerInstanceType
@@ -75,6 +82,7 @@ Metadata:
         - SnapshotRetentionPeriodDays
         - DatabaseUsername
         - DatabasePassword
+        - schedule
       ParameterLabels:
         SqlServerInstanceName:
             default: Instance name
@@ -92,6 +100,8 @@ Metadata:
             default: Master user name
         DatabasePassword:
             default: Password
+        schedule:
+            default: 0
 Resources:
   RDSDBSubnetGroup: 
     Type: "AWS::RDS::DBSubnetGroup"
@@ -139,10 +149,12 @@ Resources:
       Tags:
         -
           Key: "Name"
-          Value: "sqlmaster"
+          Value: !Ref SqlServerInstanceName
+       
         -
-          Key: "project"
-          Value: "development unittest"
+          Key: "schedule"
+          Value: !Ref schedule
+          
       CopyTagsToSnapshot: true
       PreferredBackupWindow:
         Ref: PreferredBackupWindow
