@@ -1,0 +1,146 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creates a BluePrism Application Server or Robot Server
+Parameters:
+  EC2InstanceName:
+    NoEcho: 'false'
+    Description: EC2 Server Instance Name
+    Type: String
+    Default: EC2Instance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  EC2ServerInstanceType:
+    Type: String
+    Default: t2.micro
+    Description: The approved EC2 Instance Type.
+    AllowedValues:
+    - t2.micro
+    - m4.large
+    - m4.2xlarge
+    - m4.4xlarge
+    - r4.small
+    - r4.large
+    - r4.2xlarge
+    - r4.4xlarge
+  EC2AttachedDiskSize:
+    Type: Number
+    ConstraintDescription: must contain a number between 20 and 500.
+    Default: 100
+    MinValue: 20
+    MaxValue: 500
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+  schedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'
+  AvailabilityZone:
+    Description: The Availability Zone to deploy the EC2 instance into (a or b)
+    Type: String
+    Default: a
+    AllowedValues:
+      - a
+      - b
+    ConstraintDescription: must be a or b    
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+    
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: EC2 Instance name, EC2 Server Instance type, EC2 Attached Disk Size, schedule,  Availability Zone, Key Name
+      Parameters:
+        - EC2InstanceName
+        - EC2ServerInstanceType
+        - EC2AttachedDiskSize
+        - schedule
+        - AvailabilityZone
+        - KeyName
+      ParameterLabels:
+        EC2InstanceName:
+            default: EC2Instance
+        EC2ServerInstanceType:
+            default: t2.micro
+        EC2AttachedDiskSize:
+            default: 100
+        schedule:
+            default: 0
+        AvailabilityZone:
+            default: a        
+
+Mappings:
+  AvailabilityZoneToSubnetMap:
+    us-west-2:
+      a: 'subnet-0933867f24bff05bd'
+      b: 'subnet-075aa865d1a1fbd0d'
+  AvailabilityZoneToAttachedDiskMap:
+    us-west-2:
+      a: 'us-west-2a'
+      b: 'us-west-2b'
+ 
+Resources:
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable http access from anywhere and RDP from office
+      VpcId:  vpc-02fed27515c2b1482
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: '3389'
+          ToPort: '3389'
+          CidrIp: 10.0.0.0/8
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0a98eba42e9bf85c9
+      InstanceInitiatedShutdownBehavior: stop
+      InstanceType: !Ref EC2ServerInstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !FindInMap [AvailabilityZoneToSubnetMap, !Ref "AWS::Region", !Ref AvailabilityZone]
+      Monitoring: 'true'
+      SecurityGroupIds:
+        - !GetAtt 
+          - WebServerSecurityGroup
+          - GroupId
+      Tenancy: default
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: '100'
+            VolumeType: gp2
+      Volumes:
+        - VolumeId: !Ref EBSDisk
+
+          Device: /dev/sdk
+     
+      Tags:
+        -
+          Key: "Name"
+          Value: !Ref EC2InstanceName
+        -
+          Key: "schedule"
+          Value: !Ref schedule
+          
+
+  EBSDisk:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      AvailabilityZone: !FindInMap [AvailabilityZoneToAttachedDiskMap, !Ref "AWS::Region", !Ref AvailabilityZone]
+      Encrypted: 'true'
+      Size: !Ref EC2AttachedDiskSize
+      VolumeType: gp2
+      
+Outputs:
+   EC2PrivateIPAddress:
+     Description: Private Endpoint of EC2 Instance
+     Value: 
+      !GetAtt EC2Instance.PrivateIp

@@ -1,0 +1,351 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a sample BluePrism RPA stack with App Server, Robot, DB Server, Multi-AZ
+Parameters:
+  SqlServerInstanceName:
+    NoEcho: 'false'
+    Description: RDS SQL Server Instance Name
+    Type: String
+    Default: SqlRdsDB
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  SqlServerInstanceType:
+    Type: String
+    Default: db.m4.large
+    Description: The approved RDS Instance Type.
+    AllowedValues:
+    - db.m4.large
+    - db.m4.xlarge
+    - db.m4.2xlarge
+    - db.m4.4xlarge
+    - db.r4.large
+    - db.r4.xlarge
+    - db.r4.2xlarge
+    - db.r4.4xlarge
+  SqlServerDBSize:
+     Type: Number
+     ConstraintDescription: must contain a number between 100 and 2000.
+     Default: 500
+     MinValue: 100
+     MaxValue: 2000
+     Description: The total Database Capacity, including logs, indexes, etc. (GB)
+  PreferredBackupWindow:
+     Type: String
+     Default: '09:00-09:30'
+     ConstraintDescription: must be at least 30 minutes, must be in UTC, must not conflict with preferred maintenance window, required format is hh24:mi-hh24:mi.
+     Description: The preferred backup window (30 minutes minimum), in UTC (Coordinated Universal Time).
+  PreferredMaintenanceWindow:
+     Type: String
+     Default: 'sun:10:00-sun:10:30'
+     ConstraintDescription: must be at least 30 minutes, must be in UTC, must not conflict with preferred backup window, required format is hh24:mi-hh24:mi.
+     Description: The preferred maintenance window (30 minutes minimum), in UTC (Coordinated Universal Time).   
+  SnapshotRetentionPeriodDays:
+     Type: Number
+     ConstraintDescription: must contain a number between 1 and 365
+     Default: 7
+     MinValue: 1
+     MaxValue: 365
+     Description: The number of days to retain snapshots (1-365).
+  DatabaseUsername:
+    AllowedPattern: "[a-zA-Z0-9]+"
+    ConstraintDescription: must contain only alphanumeric characters.
+    Description: The database admin account user name.
+    MaxLength: '16'
+    MinLength: '1'
+    Type: String
+  DatabasePassword:
+    AllowedPattern: "^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+)"
+    ConstraintDescription: Must contain only alphanumeric characters with at least one capital letter and one number.
+    Description: The database admin account password.
+    MaxLength: '41'
+    MinLength: '8'
+    NoEcho: 'true'
+    Type: String
+  RDSSchedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'    
+    
+  PrimaryAppServerInstanceName:
+    NoEcho: 'false'
+    Description: Primary App Server Instance Name
+    Type: String
+    Default: PrimaryAppServerInstance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  FailoverAppServerInstanceName:
+    NoEcho: 'false'
+    Description: Failover App Server Instance Name
+    Type: String
+    Default: FailoverAppServerInstance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"  
+  AppServerInstanceType:
+    Type: String
+    Default: t2.micro
+    Description: The approved App Server Instance Type.
+    AllowedValues:
+    - t2.micro
+    - m4.large
+    - m4.2xlarge
+    - m4.4xlarge
+    - r4.small
+    - r4.large
+    - r4.2xlarge
+    - r4.4xlarge
+  AppServerAttachedDiskSize:
+    Type: Number
+    ConstraintDescription: must contain a number between 20 and 500.
+    Default: 100
+    MinValue: 20
+    MaxValue: 500
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+  AppServerSchedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'     
+    
+  PrimaryRobotServerInstanceName:
+    NoEcho: 'false'
+    Description: Primary Robot Server Instance Name
+    Type: String
+    Default: PrimaryRobotServerInstance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+  FailoverRobotServerInstanceName:
+    NoEcho: 'false'
+    Description: Failover Robot Server Instance Name
+    Type: String
+    Default: FailoverRobotServerInstance
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"  
+  RobotServerInstanceType:
+    Type: String
+    Default: t2.micro
+    Description: The approved Robot Server Instance Type.
+    AllowedValues:
+    - t2.micro
+    - m4.large
+    - m4.2xlarge
+    - m4.4xlarge
+    - r4.small
+    - r4.large
+    - r4.2xlarge
+    - r4.4xlarge
+  RobotServerAttachedDiskSize:
+    Type: Number
+    ConstraintDescription: must contain a number between 20 and 500.
+    Default: 100
+    MinValue: 20
+    MaxValue: 500
+    Description: The total Attached Disk Capacity (GB) (not including 100GB O/S disk)
+  RobotServerSchedule:
+    Type: Number
+    ConstraintDescription: must contain a number between 0 and 11
+    Default: 0
+    MinValue: 0
+    MaxValue: 11
+    Description: 'Schedule option: 0=Stopped, 1=Run Full Time, 2-11 (refer to Cloud Services Schedule List)'  
+
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair. 
+    
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: SQL Instance name, SQL Instance type, DB Size, Preferred Backup Window, Preferred Maintenance Window, Snapshot Retention, database username and password, App/Robot Server Instance Name, App/Robot Server Instance Type, App/Robot Server Disk Capacity, Key Name, schedule
+      Parameters:
+        - SqlServerInstanceName
+        - SqlServerInstanceType
+        - SqlServerDBSize
+        - PreferredBackupWindow
+        - PreferredMaintenanceWindow
+        - SnapshotRetentionPeriodDays
+        - DatabaseUsername
+        - DatabasePassword
+        - RDSSchedule
+        - PrimaryAppServerInstanceName
+        - FailoverAppServerInstanceName
+        - AppServerInstanceType
+        - AppServerAttachedDiskSize
+        - AppServerSchedule
+        - PrimaryRobotServerInstanceName
+        - FailoverRobotServerInstanceName
+        - RobotServerInstanceType
+        - RobotServerAttachedDiskSize
+        - RobotServerSchedule
+        - KeyName
+      ParameterLabels:
+        SqlServerInstanceName:
+            default: Instance name
+        SqlServerInstanceType:
+            default: db.m4.large
+        SqlServerDBSize:
+            default: 500
+        PreferredBackupWindow:
+            default: '09:00-09:30'
+        PreferredMaintenanceWindow:
+            default: 'sun:10:00-sun:10:30'
+        SnapshotRetentionPeriodDays:
+            default: 7
+        DatabaseUsername:
+            default: Master user name
+        DatabasePassword:
+            default: Password
+        RDSSchedule:
+            default: 0        
+        PrimaryAppServerInstanceName:
+            default: PrimaryAppServerInstance
+        FailoverAppServerInstanceName:
+            default: FailoverAppServerInstance   
+        AppServerInstanceType:
+            default: t2.micro
+        AppServerAttachedDiskSize:
+            default: 100
+        AppServerSchedule:
+            default: 0        
+        PrimaryRobotServerInstanceName:
+            default: PrimaryRobotServerInstance
+        FailoverRobotServerInstanceName:
+            default: FailoverRobotServerInstance    
+        RobotServerInstanceType:
+            default: t2.micro
+        RobotServerAttachedDiskSize:
+            default: 100
+        RobotServerSchedule:
+            default: 0
+            
+Resources:
+  RDSStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/rds_mssql_multiaz.yaml
+      Parameters:
+        SqlServerInstanceName:
+         !Ref SqlServerInstanceName
+        SqlServerInstanceType:
+          !Ref SqlServerInstanceType
+        SqlServerDBSize:
+          !Ref SqlServerDBSize
+        PreferredBackupWindow:
+          !Ref PreferredBackupWindow
+        PreferredMaintenanceWindow:
+          !Ref PreferredMaintenanceWindow
+        SnapshotRetentionPeriodDays:
+          !Ref SnapshotRetentionPeriodDays        
+        DatabaseUsername:
+          !Ref DatabaseUsername
+        DatabasePassword:
+          !Ref DatabasePassword
+        schedule:
+          !Ref RDSSchedule
+          
+  PrimaryAppServerStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/appserver_wintel_multiaz.yaml
+      Parameters:
+        EC2InstanceName:
+          !Ref PrimaryAppServerInstanceName
+        EC2ServerInstanceType:
+          !Ref AppServerInstanceType
+        EC2AttachedDiskSize:
+          !Ref AppServerAttachedDiskSize
+        schedule:
+          !Ref AppServerSchedule
+        AvailabilityZone: a  
+        KeyName:
+          !Ref KeyName
+          
+  FailoverAppServerStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/appserver_wintel_multiaz.yaml
+      Parameters:
+        EC2InstanceName:
+          !Ref FailoverAppServerInstanceName
+        EC2ServerInstanceType:
+          !Ref AppServerInstanceType
+        EC2AttachedDiskSize:
+          !Ref AppServerAttachedDiskSize
+        schedule:
+          !Ref AppServerSchedule
+        AvailabilityZone: b  
+        KeyName:
+          !Ref KeyName      
+          
+  PrimaryRobotServerStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/appserver_wintel_multiaz.yaml
+      Parameters:
+        EC2InstanceName:
+          !Ref PrimaryRobotServerInstanceName
+        EC2ServerInstanceType:
+          !Ref RobotServerInstanceType
+        EC2AttachedDiskSize:
+          !Ref RobotServerAttachedDiskSize
+        schedule:
+          !Ref RobotServerSchedule
+        AvailabilityZone: a  
+        KeyName:
+          !Ref KeyName
+          
+  FailoverRobotServerStackWithParams:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/cf-templates-17kg4zindgpnx-us-west-2/appserver_wintel_multiaz.yaml
+      Parameters:
+        EC2InstanceName:
+          !Ref FailoverRobotServerInstanceName
+        EC2ServerInstanceType:
+          !Ref RobotServerInstanceType
+        EC2AttachedDiskSize:
+          !Ref RobotServerAttachedDiskSize
+        schedule:
+          !Ref RobotServerSchedule
+        AvailabilityZone: b 
+        KeyName:
+          !Ref KeyName
+
+          
+Outputs:
+  RDSStackRef:
+    Value: !Ref RDSStackWithParams
+  OutputFromRDSStack:
+    Value: !GetAtt RDSStackWithParams.Outputs.SQLDatabaseEndpoint
+    
+  PrimaryAppServerStackRef:
+    Value: !Ref PrimaryAppServerStackWithParams
+  OutputFromPrimaryAppServerStack:
+    Value: !GetAtt PrimaryAppServerStackWithParams.Outputs.EC2PrivateIPAddress
+    
+  FailoverAppServerStackRef:
+    Value: !Ref FailoverAppServerStackWithParams
+  OutputFromFailoverAppServerStack:
+    Value: !GetAtt FailoverAppServerStackWithParams.Outputs.EC2PrivateIPAddress  
+
+  PrimaryRobotServerStackRef:
+    Value: !Ref PrimaryRobotServerStackWithParams
+  OutputFromPrimaryRobotServerStack:
+    Value: !GetAtt PrimaryRobotServerStackWithParams.Outputs.EC2PrivateIPAddress
+    
+  FailoverRobotServerStackRef:
+    Value: !Ref FailoverRobotServerStackWithParams
+  OutputFromFailoverRobotServerStack:
+    Value: !GetAtt FailoverRobotServerStackWithParams.Outputs.EC2PrivateIPAddress  
+    
+    
