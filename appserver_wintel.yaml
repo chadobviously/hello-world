@@ -80,7 +80,7 @@ Resources:
   EC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
-      ImageId: ami-0a98eba42e9bf85c9
+      ImageId: ami-04a519b1c935add87
       InstanceInitiatedShutdownBehavior: stop
       InstanceType: !Ref EC2ServerInstanceType
       KeyName: !Ref KeyName
